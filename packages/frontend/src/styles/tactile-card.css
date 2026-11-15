@@ -1,0 +1,105 @@
+/* Tactile Card 3D Transforms, Sheen & Rarity Styles */
+
+.tactile-card-wrapper {
+  perspective: 1000px;
+  display: inline-block;
+  user-select: none;
+}
+
+.tactile-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 220ms ease;
+  border-radius: 0;
+  image-rendering: pixelated;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.85);
+}
+
+.tactile-card.is-flipped {
+  transform: rotateY(180deg) scale(1.03);
+  box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.9);
+}
+
+.card-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.card-back {
+  transform: rotateY(0deg);
+  z-index: 2;
+}
+
+.card-front {
+  transform: rotateY(180deg);
+  z-index: 1;
+}
+
+/* Dynamic Foil Sheen Overlay */
+.tactile-card__foil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    calc(var(--gyro-tilt-x, 0deg) + 115deg),
+    transparent 15%,
+    rgba(255, 255, 255, 0.25) 45%,
+    rgba(255, 215, 0, 0.35) 50%,
+    rgba(147, 51, 234, 0.25) 55%,
+    transparent 85%
+  );
+  mix-blend-mode: color-dodge;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Card Origin Tag Borders */
+.border-origin-base {
+  border: 3px solid #71717a; /* Weathered steel with rivets */
+  box-shadow: inset 0 0 0 1px #27272a, 4px 4px 0px #000;
+}
+
+.border-origin-alpha {
+  border: 3px solid #9333ea; /* Purple galvanic plating */
+  box-shadow: inset 0 0 0 1px #a855f7, 0 0 8px rgba(168, 85, 247, 0.4), 4px 4px 0px #000;
+}
+
+.border-origin-expansion {
+  border: 3px solid #d97706; /* Industrial bronze */
+  box-shadow: inset 0 0 0 1px #78350f, 4px 4px 0px #000;
+}
+
+.border-origin-new {
+  border: 3px solid #06b6d4; /* Neon cyan glow */
+  box-shadow: inset 0 0 0 1px #22d3ee, 0 0 8px rgba(6, 182, 212, 0.5), 4px 4px 0px #000;
+}
+
+/* Card Arc Fan Deck */
+.fan-deck-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  position: relative;
+  height: 280px;
+  overflow: visible;
+}
+
+.fan-card-item {
+  position: absolute;
+  bottom: 0;
+  transform-origin: bottom center;
+  transition: transform 0.25s ease-out, z-index 0.25s;
+}
+
+.fan-card-item:hover {
+  transform: translateY(-24px) scale(1.08) !important;
+  z-index: 50 !important;
+}

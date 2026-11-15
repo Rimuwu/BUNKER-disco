@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-dark:        #0d0d1a;
+  --bg-panel:       #16162a;
+  --bg-card:        #1b1c36;
+  --bg-hover:       #24264a;
+
+  --border-primary: #3f416d;
+  --border-gold:    #ffc700;
+  --border-danger:  #e02424;
+  --border-success: #059669;
+
+  --text-main:      #f3f4f6;
+  --text-muted:     #9ca3af;
+  --text-gold:      #fcd34d;
+
+  /* Resource Indicators */
+  --res-food:       #84cc16;
+  --res-water:      #06b6d4;
+  --res-air:        #e0f2fe;
+  --res-med:        #f43f5e;
+  --res-morale:     #fbbf24;
+  --res-power:      #f97316;
+}
+
+/* CRT Scanline & Screen Effects */
+.crt-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.crt-overlay::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  z-index: 99;
+  background-size: 100% 3px, 6px 100%;
+  pointer-events: none;
+}
+
+/* Pixel scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0d1a;
+}
+::-webkit-scrollbar-thumb {
+  background: #3f416d;
+  border: 1px solid #000;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ffc700;
+}

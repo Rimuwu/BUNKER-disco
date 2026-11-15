@@ -1,0 +1,145 @@
+services:
+  # ==========================================
+  # База данных MongoDB
+  # ==========================================
+  mongo:
+    image: mongo:7.0-jammy
+    container_name: bunker-mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-bunker_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-bunker_secret_pass}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-bunker_disco}
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - bunker-network
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval 'db.adminCommand(\"ping\")' -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ==========================================
+  # Redis (Очередь задач и Pub/Sub)
+  # ==========================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: bunker-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-bunker_redis_pass}"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - bunker-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-bunker_redis_pass}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ==========================================
+  # Fastify REST API & Socket.io Gateway
+  # ==========================================
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: bunker-api
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-bunker_admin}:${MONGO_ROOT_PASSWORD:-bunker_secret_pass}@mongo:27017/${MONGO_DB_NAME:-bunker_disco}?authSource=admin
+      MONGO_URL: mongodb://${MONGO_ROOT_USER:-bunker_admin}:${MONGO_ROOT_PASSWORD:-bunker_secret_pass}@mongo:27017/${MONGO_DB_NAME:-bunker_disco}?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD:-bunker_redis_pass}@redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-bunker_redis_pass}
+      JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_bunker_disco_2026}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bunker-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ==========================================
+  # Фоновый обработчик игровой логики (Worker)
+  # ==========================================
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    container_name: bunker-worker
+    restart: always
+    environment:
+      NODE_ENV: production
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-bunker_admin}:${MONGO_ROOT_PASSWORD:-bunker_secret_pass}@mongo:27017/${MONGO_DB_NAME:-bunker_disco}?authSource=admin
+      MONGO_URL: mongodb://${MONGO_ROOT_USER:-bunker_admin}:${MONGO_ROOT_PASSWORD:-bunker_secret_pass}@mongo:27017/${MONGO_DB_NAME:-bunker_disco}?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD:-bunker_redis_pass}@redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-bunker_redis_pass}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-10}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bunker-network
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'process.exit(0)'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ==========================================
+  # Frontend (Vue 3 + Three.js + Nginx Proxy)
+  # ==========================================
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:3000}
+    container_name: bunker-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - bunker-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+networks:
+  bunker-network:
+    name: bunker-network
+    driver: bridge
+
+volumes:
+  mongo_data:
+    name: bunker_mongo_data
+  redis_data:
+    name: bunker_redis_data
